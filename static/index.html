@@ -11,6 +11,7 @@
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 </head>
 <body>
+<canvas id="viz"></canvas>
 
 <header id="topbar">
   <div class="logo">FLOW<span>MIX</span></div>
@@ -152,6 +153,7 @@
     <div id="mixer">
       <label class="switch"><input type="checkbox" id="autoDj" checked> AUTO-DJ</label>
       <label class="switch"><input type="checkbox" id="syncBpm"> SYNC BPM</label>
+      <label class="switch"><input type="checkbox" id="vizToggle" checked> VISUALIZER</label>
       <select id="deckMode" class="btn small" title="How decks behave across transitions">
         <option value="chrono">Flow: Chronological A→B</option>
         <option value="pingpong">Flow: Ping-pong A↔B</option>

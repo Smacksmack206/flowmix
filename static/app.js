@@ -12,6 +12,12 @@ master.connect(AC.destination);
 const recDest = AC.createMediaStreamDestination();   // mix recorder tap
 master.connect(recDest);
 
+// spectrum tap for the background visualizer
+const analyser = AC.createAnalyser();
+analyser.fftSize = 256;
+analyser.smoothingTimeConstant = 0.82;
+master.connect(analyser);
+
 // FX buses (shared)
 const echoDelay = AC.createDelay(2.0); echoDelay.delayTime.value = 0.375;
 const echoFb = AC.createGain(); echoFb.gain.value = 0.38;
@@ -291,8 +297,45 @@ function drawWave(deck) {
   }
 }
 
+// ================= VISUALIZER =================
+// Fullscreen canvas behind the UI; translucent panels let it bleed through.
+let vizOn = localStorage.getItem("flowmix.viz") !== "0";
+const vizCanvas = $("viz");
+const vg = vizCanvas.getContext("2d");
+const freqData = new Uint8Array(analyser.frequencyBinCount);
+
+function sizeViz() {
+  vizCanvas.width = innerWidth * devicePixelRatio;
+  vizCanvas.height = innerHeight * devicePixelRatio;
+}
+addEventListener("resize", sizeViz);
+sizeViz();
+
+function drawViz() {
+  const w = vizCanvas.width, h = vizCanvas.height;
+  vg.clearRect(0, 0, w, h);
+  if (!vizOn) return;
+  analyser.getByteFrequencyData(freqData);
+  const bars = 72, bw = w / bars;
+  const grad = vg.createLinearGradient(0, h, 0, h * 0.35);
+  grad.addColorStop(0, themeColors.accent);
+  grad.addColorStop(1, themeColors.accent2);
+  vg.fillStyle = grad;
+  vg.globalCompositeOperation = "lighter";
+  for (let i = 0; i < bars; i++) {
+    const v = freqData[Math.floor(i * 90 / bars)] / 255;
+    if (v < 0.02) continue;
+    const bh = Math.pow(v, 1.4) * h * 0.32;
+    vg.globalAlpha = 0.06 + v * 0.30;
+    vg.fillRect(i * bw + bw * 0.18, h - bh, bw * 0.64, bh);
+  }
+  vg.globalAlpha = 1;
+  vg.globalCompositeOperation = "source-over";
+}
+
 // ================= UI TICK =================
 function tick() {
+  drawViz();
   for (const n of ["A", "B"]) {
     const d = decks[n];
     $(`time${n}`).textContent = `${fmt(d.el.currentTime)} / ${fmt(d.el.duration || d.track?.duration)}`;
@@ -893,10 +936,9 @@ function mixRGB(hex1, hex2, w) {
 }
 const css = (c, a) => a == null ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
 
-// Rotate hue of a hex color by `deg` to derive a matching secondary accent.
-function hueRotate(hex, deg) {
+function hexToHsl(hex) {
   const n = parseInt(hex.slice(1), 16);
-  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
   let h = 0;
   if (d) {
@@ -905,10 +947,14 @@ function hueRotate(hex, deg) {
     else h = (r - g) / d + 4;
     h *= 60; if (h < 0) h += 360;
   }
-  const l = (max + min) / 510;
-  const sl = max + min ? d / (max + min > 255 ? 510 - max - min : max + min) : 0;
-  h = (h + deg + 360) % 360;
-  const c = (1 - Math.abs(2 * l - 1)) * sl;
+  const l = (max + min) / 2;
+  const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  return [h, s, l];
+}
+
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
   let rr, gg, bb;
@@ -921,6 +967,19 @@ function hueRotate(hex, deg) {
   const to = v => Math.round((v + m) * 255).toString(16).padStart(2, "0");
   return `#${to(rr)}${to(gg)}${to(bb)}`;
 }
+
+// Rotate hue of a hex color by `deg` to derive a matching secondary accent.
+const hueRotate = (hex, deg) => {
+  const [h, s, l] = hexToHsl(hex);
+  return hslToHex(h + deg, s, l);
+};
+
+// Dark, desaturated shade of the accent — becomes the app background, and
+// all panel surfaces derive from it in applyTheme.
+const bgForAccent = hex => {
+  const [h, s] = hexToHsl(hex);
+  return hslToHex(h, Math.min(0.45, s * 0.55), 0.055);
+};
 
 function applyTheme(t, saveAs) {
   const r = document.documentElement.style;
@@ -981,7 +1040,7 @@ function setBgImage(url) {
 
   $("accentPick").addEventListener("input", e => {
     const accent = e.target.value;
-    const t = { accent, accent2: hueRotate(accent, 65), bg: THEMES.flowmix.bg };
+    const t = { accent, accent2: hueRotate(accent, 65), bg: bgForAccent(accent) };
     applyTheme(t, "custom");
     sel.value = "custom";
     localStorage.setItem("flowmix.customAccent", accent);
@@ -1017,7 +1076,7 @@ function setBgImage(url) {
   const savedTheme = localStorage.getItem("flowmix.theme") || "flowmix";
   if (savedTheme === "custom") {
     const accent = localStorage.getItem("flowmix.customAccent") || THEMES.flowmix.accent;
-    applyTheme({ accent, accent2: hueRotate(accent, 65), bg: THEMES.flowmix.bg }, null);
+    applyTheme({ accent, accent2: hueRotate(accent, 65), bg: bgForAccent(accent) }, null);
     $("accentPick").value = accent;
   } else {
     applyTheme(THEMES[savedTheme] || THEMES.flowmix, null);
@@ -1029,6 +1088,13 @@ function setBgImage(url) {
 })();
 
 // ================= BOOT =================
+const vizT = $("vizToggle");
+vizT.checked = vizOn;
+vizT.addEventListener("change", () => {
+  vizOn = vizT.checked;
+  localStorage.setItem("flowmix.viz", vizOn ? "1" : "0");
+  if (!vizOn) vg.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
+});
 wireDeck(decks.A);
 wireDeck(decks.B);
 tick();

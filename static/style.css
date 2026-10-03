@@ -104,8 +104,14 @@ select.btn {
 }
 select.btn option { background: var(--panel-solid); }
 
+/* ---------- background visualizer ---------- */
+#viz {
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  z-index: 0; pointer-events: none;
+}
+
 /* ---------- layout ---------- */
-#layout { flex: 1; display: flex; min-height: 0; }
+#layout { flex: 1; display: flex; min-height: 0; position: relative; z-index: 1; }
 
 #sidebar {
   width: 360px; min-width: 360px;
