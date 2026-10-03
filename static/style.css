@@ -211,7 +211,26 @@ select.btn option { background: var(--panel-solid); }
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
   background: #000;
 }
-#ytPlayer { width: 100%; height: 100%; }
+#deckVideo { width: 100%; height: 100%; background: #000; object-fit: contain; display: block; }
+#videoFrame { position: relative; }
+#ytFallback {
+  position: absolute; inset: 0; z-index: 5; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+#ytFallback.hidden { display: none; }
+#ytFallbackImg {
+  position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover;
+  filter: brightness(0.45) saturate(0.9) blur(2px);
+  animation: kenburns 24s ease-in-out infinite alternate;
+}
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
+.yt-fallback-msg {
+  position: relative; text-align: center; font-weight: 700; font-size: 14px;
+  color: var(--text); text-shadow: 0 2px 12px #000;
+  padding: 0 20px;
+}
+.yt-fallback-msg span { display: block; margin-top: 6px; font-weight: 500; font-size: 12px; color: #c9d2e4; }
 
 #decks { flex: 1; display: flex; gap: 16px; padding: 16px; min-height: 0; overflow-y: auto; }
 

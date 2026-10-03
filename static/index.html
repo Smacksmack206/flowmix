@@ -81,7 +81,16 @@
   <!-- ============ DECKS + MIXER ============ -->
   <section id="stage">
     <div id="videoPane" class="hidden">
-      <div id="videoFrame"><div id="ytPlayer"></div></div>
+      <div id="videoFrame">
+        <video id="deckVideo" muted playsinline controls preload="none"></video>
+        <div id="ytFallback" class="hidden">
+          <img id="ytFallbackImg" alt="">
+          <div class="yt-fallback-msg">
+            🎬 Visuals unavailable for this track
+            <span>stream could not be loaded — the mix keeps playing ad-free</span>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="decks">
       <!-- DECK A -->

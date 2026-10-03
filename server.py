@@ -177,13 +177,19 @@ def playlist_items(pid):
     return out
 
 
-def resolve(vid):
-    """Return a direct googlevideo audio URL (these never carry ads)."""
+def resolve(vid, video=False):
+    """Return a direct googlevideo media URL (these never carry ads or
+    embed restrictions — the restriction lives in YouTube's player, not
+    in the media itself)."""
+    key = vid + ("#v" if video else "")
     with _lock:
-        c = _stream_cache.get(vid)
+        c = _stream_cache.get(key)
         if c and c["expire_ts"] - 60 > time.time():
             return c
-    p = _run([YTDLP, "-f", "bestaudio[ext=webm]/bestaudio/best", "-g",
+    fmt = ("bestvideo[ext=mp4][height<=720]/bestvideo[height<=720]/"
+           "best[ext=mp4][height<=480]/best[height<=480]/bestvideo/best"
+           if video else "bestaudio[ext=webm]/bestaudio/best")
+    p = _run([YTDLP, "-f", fmt, "-g",
               "--no-playlist", "--no-warnings",
               f"https://www.youtube.com/watch?v={vid}"], 120)
     url = p.stdout.strip().splitlines()[0] if p.stdout.strip() else None
@@ -195,7 +201,7 @@ def resolve(vid):
         exp = 0
     c = {"url": url, "expire_ts": exp or (time.time() + 3600)}
     with _lock:
-        _stream_cache[vid] = c
+        _stream_cache[key] = c
     return c
 
 
@@ -274,6 +280,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not vid:
                     return self._err(400, "missing id")
                 self._proxy(vid)
+            elif path == "/api/video":
+                vid = (q.get("id") or [""])[0]
+                if not vid:
+                    return self._err(400, "missing id")
+                self._proxy(vid, video=True)
             elif path == "/api/analyze":
                 vid = (q.get("id") or [""])[0]
                 if not vid:
@@ -320,9 +331,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _proxy(self, vid):
+    def _proxy(self, vid, video=False):
         try:
-            c = resolve(vid)
+            c = resolve(vid, video)
         except Exception as e:
             return self._err(502, str(e))
         rng = self.headers.get("Range")
@@ -337,8 +348,8 @@ class Handler(BaseHTTPRequestHandler):
             except urllib.error.HTTPError as e:
                 if e.code in (403, 410) and attempt == 0:
                     with _lock:
-                        _stream_cache.pop(vid, None)
-                    c = resolve(vid)
+                        _stream_cache.pop(vid + ("#v" if video else ""), None)
+                    c = resolve(vid, video)
                     continue
                 return self._err(502, f"upstream returned {e.code}")
             except Exception as e:
