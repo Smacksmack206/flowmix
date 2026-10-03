@@ -867,6 +867,146 @@ function syncVideo(force) {
 }
 setInterval(() => syncVideo(false), 1500);
 
+// ================= THEMES =================
+const THEMES = {
+  flowmix:   { label: "FlowMix (default)", accent: "#7c5cff", accent2: "#22d3ee", bg: "#0a0c12" },
+  sunset:    { label: "Sunset",            accent: "#ff7a45", accent2: "#ff4d94", bg: "#140b0e" },
+  ocean:     { label: "Ocean",             accent: "#3b82f6", accent2: "#22d3ee", bg: "#081019" },
+  forest:    { label: "Forest",            accent: "#34d399", accent2: "#a3e635", bg: "#0a120c" },
+  cyberpunk: { label: "Cyberpunk",         accent: "#ff2bd6", accent2: "#ffe600", bg: "#12041a" },
+  dracula:   { label: "Dracula",           accent: "#bd93f9", accent2: "#ff79c6", bg: "#16121f" },
+  nord:      { label: "Nord",              accent: "#88c0d0", accent2: "#81a1c1", bg: "#0d1319" },
+  mono:      { label: "Monochrome",        accent: "#e5e7eb", accent2: "#9ca3af", bg: "#0b0b0d" },
+};
+
+const hexA = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+};
+
+// Rotate hue of a hex color by `deg` to derive a matching secondary accent.
+function hueRotate(hex, deg) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  const l = (max + min) / 510;
+  const sl = max + min ? d / (max + min > 255 ? 510 - max - min : max + min) : 0;
+  h = (h + deg + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * sl;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let rr, gg, bb;
+  if (h < 60) [rr, gg, bb] = [c, x, 0];
+  else if (h < 120) [rr, gg, bb] = [x, c, 0];
+  else if (h < 180) [rr, gg, bb] = [0, c, x];
+  else if (h < 240) [rr, gg, bb] = [0, x, c];
+  else if (h < 300) [rr, gg, bb] = [x, 0, c];
+  else [rr, gg, bb] = [c, 0, x];
+  const to = v => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+  return `#${to(rr)}${to(gg)}${to(bb)}`;
+}
+
+function applyTheme(t, saveAs) {
+  const r = document.documentElement.style;
+  r.setProperty("--accent", t.accent);
+  r.setProperty("--accent2", t.accent2);
+  r.setProperty("--bg", t.bg);
+  r.setProperty("--grad", `linear-gradient(135deg, ${t.accent}, ${t.accent2})`);
+  r.setProperty("--glow1", hexA(t.accent, 0.10));
+  r.setProperty("--glow2", hexA(t.accent2, 0.08));
+  if (saveAs != null) localStorage.setItem("flowmix.theme", saveAs);
+}
+
+function setBgImage(url) {
+  if (url) document.documentElement.style.setProperty("--bgimg", `url("${url}")`);
+  else document.documentElement.style.removeProperty("--bgimg");
+}
+
+(function initThemeUI() {
+  const sel = $("themeSel");
+  for (const [k, t] of Object.entries(THEMES)) {
+    const o = document.createElement("option");
+    o.value = k;
+    o.textContent = t.label;
+    sel.appendChild(o);
+  }
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  custom.textContent = "Custom";
+  sel.appendChild(custom);
+
+  $("themeBtn").addEventListener("click", e => {
+    e.stopPropagation();
+    $("themePop").classList.toggle("hidden");
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".theme-wrap")) $("themePop").classList.add("hidden");
+  });
+
+  sel.addEventListener("change", () => {
+    if (sel.value === "custom") return;
+    const t = THEMES[sel.value];
+    applyTheme(t, sel.value);
+    $("accentPick").value = t.accent;
+    localStorage.removeItem("flowmix.customAccent");
+  });
+
+  $("accentPick").addEventListener("input", e => {
+    const accent = e.target.value;
+    const t = { accent, accent2: hueRotate(accent, 65), bg: THEMES.flowmix.bg };
+    applyTheme(t, "custom");
+    sel.value = "custom";
+    localStorage.setItem("flowmix.customAccent", accent);
+  });
+
+  $("bgPickBtn").addEventListener("click", () => $("bgFile").click());
+  $("bgClearBtn").addEventListener("click", () => {
+    setBgImage(null);
+    localStorage.removeItem("flowmix.bgimg");
+    $("bgFile").value = "";
+    toast("Background photo removed.");
+  });
+  $("bgFile").addEventListener("change", e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1920 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const url = c.toDataURL("image/jpeg", 0.82);
+      try { localStorage.setItem("flowmix.bgimg", url); }
+      catch { toast("Photo too large to keep between sessions — applied for now.", true); }
+      setBgImage(url);
+      toast("Background updated.");
+    };
+    img.src = URL.createObjectURL(f);
+  });
+
+  // restore saved prefs
+  const savedTheme = localStorage.getItem("flowmix.theme") || "flowmix";
+  if (savedTheme === "custom") {
+    const accent = localStorage.getItem("flowmix.customAccent") || THEMES.flowmix.accent;
+    applyTheme({ accent, accent2: hueRotate(accent, 65), bg: THEMES.flowmix.bg }, null);
+    $("accentPick").value = accent;
+  } else {
+    applyTheme(THEMES[savedTheme] || THEMES.flowmix, null);
+    $("accentPick").value = (THEMES[savedTheme] || THEMES.flowmix).accent;
+  }
+  sel.value = savedTheme;
+  const savedBg = localStorage.getItem("flowmix.bgimg");
+  if (savedBg) setBgImage(savedBg);
+})();
+
 // ================= BOOT =================
 wireDeck(decks.A);
 wireDeck(decks.B);

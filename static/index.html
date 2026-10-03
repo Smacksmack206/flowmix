@@ -23,6 +23,24 @@
     <button id="searchBtn" class="btn">Search</button>
   </div>
   <div class="top-actions">
+    <div class="theme-wrap">
+      <button id="themeBtn" class="btn" title="Appearance">🎨</button>
+      <div id="themePop" class="hidden">
+        <label>THEME
+          <select id="themeSel" class="btn small"></select>
+        </label>
+        <label>ACCENT COLOR
+          <input type="color" id="accentPick" value="#7c5cff">
+        </label>
+        <label>BACKGROUND PHOTO
+          <span class="row">
+            <button id="bgPickBtn" class="btn small" style="flex:1">Upload photo…</button>
+            <button id="bgClearBtn" class="btn small danger" title="Remove photo">✕</button>
+          </span>
+        </label>
+        <input type="file" id="bgFile" accept="image/*" hidden>
+      </div>
+    </div>
     <button id="videoBtn" class="btn" title="Watch the YouTube video — muted, synced to the mix">📺 VIDEO</button>
     <button id="aiBtn" class="btn btn-ai" title="AI orders the queue & sets crossfades">✨ AI MIX</button>
     <button id="recBtn" class="btn btn-rec" title="Record the mix to a file">● REC</button>
