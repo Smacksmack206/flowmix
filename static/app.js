@@ -60,6 +60,8 @@ function makeDeck(name) {
 }
 
 const decks = { A: makeDeck("A"), B: makeDeck("B") };
+// Live theme palette for canvas drawing (updated by applyTheme)
+let themeColors = { accent: "#7c5cff", accent2: "#22d3ee", dim: "#3a4560", empty: "#232a3d" };
 // Slots: slot A is always "now playing", slot B always "next up / standby".
 // Physical decks swap slots after every blend; audio chains never move.
 let slotA = "A", slotB = "B";
@@ -274,11 +276,11 @@ function drawWave(deck) {
   for (let i = 0; i < N; i++) {
     const v = peaks ? peaks[i] : 0.06 + 0.03 * Math.sin(i * 0.7);
     const bh = Math.max(2, v * h * 0.92);
-    g.fillStyle = !deck.track ? "#232a3d" : (i / N <= prog ? "#7c5cff" : "#3a4560");
+    g.fillStyle = !deck.track ? themeColors.empty : (i / N <= prog ? themeColors.accent : themeColors.dim);
     g.fillRect(i * bw + 0.5, (h - bh) / 2, Math.max(1, bw - 1), bh);
   }
   if (deck.track && deck.el.duration) {
-    g.fillStyle = "#22d3ee";
+    g.fillStyle = themeColors.accent2;
     g.fillRect(prog * w - 1, 0, 2, h);
     for (const cu of deck.cues) if (cu != null) {
       g.fillStyle = "#3ddc97";
@@ -884,6 +886,13 @@ const hexA = (hex, a) => {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 };
 
+// Mix two hex colors -> [r,g,b]; w = weight of hex2 (0..1)
+function mixRGB(hex1, hex2, w) {
+  const a = parseInt(hex1.slice(1), 16), b = parseInt(hex2.slice(1), 16);
+  return [16, 8, 0].map(s => Math.round(((a >> s) & 255) * (1 - w) + ((b >> s) & 255) * w));
+}
+const css = (c, a) => a == null ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+
 // Rotate hue of a hex color by `deg` to derive a matching secondary accent.
 function hueRotate(hex, deg) {
   const n = parseInt(hex.slice(1), 16);
@@ -921,6 +930,18 @@ function applyTheme(t, saveAs) {
   r.setProperty("--grad", `linear-gradient(135deg, ${t.accent}, ${t.accent2})`);
   r.setProperty("--glow1", hexA(t.accent, 0.10));
   r.setProperty("--glow2", hexA(t.accent2, 0.08));
+  // Panels derive from the theme's background tint so the whole app re-skins
+  const solid = mixRGB(t.bg, "#ffffff", 0.07);
+  r.setProperty("--panel-solid", css(solid));
+  r.setProperty("--panel", css(solid, 0.72));
+  r.setProperty("--panel2", css(mixRGB(t.bg, "#ffffff", 0.11), 0.88));
+  r.setProperty("--track", css(mixRGB(t.bg, "#ffffff", 0.16)));
+  r.setProperty("--inset", css(mixRGB(t.bg, "#000000", 0.35), 0.8));
+  // canvas palette follows the theme too
+  themeColors.accent = t.accent;
+  themeColors.accent2 = t.accent2;
+  themeColors.dim = css(mixRGB(t.bg, "#ffffff", 0.24));
+  themeColors.empty = css(mixRGB(t.bg, "#ffffff", 0.10));
   if (saveAs != null) localStorage.setItem("flowmix.theme", saveAs);
 }
 
