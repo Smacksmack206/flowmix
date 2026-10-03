@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowMix — AI YouTube DJ</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="logo">FLOW<span>MIX</span></div>
+  <div class="searchbox">
+    <select id="searchType" class="btn small">
+      <option value="videos">Videos</option>
+      <option value="channels">Artists / Channels</option>
+    </select>
+    <input id="searchInput" type="text" placeholder="Search YouTube — music plays ad-free…" autocomplete="off">
+    <button id="searchBtn" class="btn">Search</button>
+  </div>
+  <div class="top-actions">
+    <button id="aiBtn" class="btn btn-ai" title="AI orders the queue & sets crossfades">✨ AI MIX</button>
+    <button id="recBtn" class="btn btn-rec" title="Record the mix to a file">● REC</button>
+    <label class="mastervol">MASTER <input id="masterVol" type="range" min="0" max="100" value="90"></label>
+  </div>
+</header>
+
+<main id="layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside id="sidebar">
+    <div class="tabs">
+      <button class="tab active" data-tab="search">Results</button>
+      <button class="tab" data-tab="queue">Queue <span id="queueCount" class="pill">0</span></button>
+      <button class="tab" data-tab="ai">AI Plan</button>
+    </div>
+
+    <div id="tab-search" class="tabpane active">
+      <div id="results" class="list"><div class="hint">Search for tracks, then hit <b>+ Queue</b>.</div></div>
+    </div>
+
+    <div id="tab-queue" class="tabpane">
+      <div class="queue-tools">
+        <button id="analyzeAllBtn" class="btn small">Analyze all</button>
+        <button id="clearQueueBtn" class="btn small danger">Clear</button>
+      </div>
+      <div id="queue" class="list"><div class="hint">Queue is empty.</div></div>
+    </div>
+
+    <div id="tab-ai" class="tabpane">
+      <div id="aiPlan" class="list">
+        <div class="hint">Queue some tracks, let them analyze, then press <b>✨ AI MIX</b>. The engine orders them harmonically (Camelot wheel), aligns tempo, shapes energy and picks a crossfade for every transition.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ DECKS + MIXER ============ -->
+  <section id="stage">
+    <div id="decks">
+      <!-- DECK A -->
+      <div class="deck" id="deckA">
+        <div class="deck-head"><span class="deck-tag">DECK A</span><span class="deck-title" id="titleA">— empty —</span></div>
+        <div class="badges" id="badgesA"></div>
+        <canvas class="wave" id="waveA" height="90"></canvas>
+        <div class="timer"><span id="timeA">0:00 / 0:00</span></div>
+        <div class="transport">
+          <button class="btn play" id="playA">▶</button>
+          <label class="ctl tempo">TEMPO <span id="tempoValA">100%</span>
+            <input type="range" id="tempoA" min="80" max="120" value="100">
+          </label>
+        </div>
+        <div class="eq">
+          <label class="ctl">LOW <input type="range" id="eqLowA" min="-24" max="12" value="0"></label>
+          <label class="ctl">MID <input type="range" id="eqMidA" min="-24" max="12" value="0"></label>
+          <label class="ctl">HIGH <input type="range" id="eqHighA" min="-24" max="12" value="0"></label>
+        </div>
+        <div class="fx">
+          <label class="ctl">FILTER <input type="range" id="filterA" min="-100" max="100" value="0"></label>
+          <label class="ctl">ECHO <input type="range" id="echoA" min="0" max="100" value="0"></label>
+          <label class="ctl">REVERB <input type="range" id="reverbA" min="0" max="100" value="0"></label>
+        </div>
+        <div class="pads">
+          <button class="cue" data-deck="A" data-cue="0">CUE 1</button>
+          <button class="cue" data-deck="A" data-cue="1">CUE 2</button>
+          <button class="cue" data-deck="A" data-cue="2">CUE 3</button>
+          <button class="loopbtn" id="loopAA">A</button>
+          <button class="loopbtn" id="loopBA">B</button>
+          <button class="loopbtn" id="loopClrA">⟲</button>
+        </div>
+      </div>
+
+      <!-- DECK B -->
+      <div class="deck" id="deckB">
+        <div class="deck-head"><span class="deck-tag">DECK B</span><span class="deck-title" id="titleB">— empty —</span></div>
+        <div class="badges" id="badgesB"></div>
+        <canvas class="wave" id="waveB" height="90"></canvas>
+        <div class="timer"><span id="timeB">0:00 / 0:00</span></div>
+        <div class="transport">
+          <button class="btn play" id="playB">▶</button>
+          <label class="ctl tempo">TEMPO <span id="tempoValB">100%</span>
+            <input type="range" id="tempoB" min="80" max="120" value="100">
+          </label>
+        </div>
+        <div class="eq">
+          <label class="ctl">LOW <input type="range" id="eqLowB" min="-24" max="12" value="0"></label>
+          <label class="ctl">MID <input type="range" id="eqMidB" min="-24" max="12" value="0"></label>
+          <label class="ctl">HIGH <input type="range" id="eqHighB" min="-24" max="12" value="0"></label>
+        </div>
+        <div class="fx">
+          <label class="ctl">FILTER <input type="range" id="filterB" min="-100" max="100" value="0"></label>
+          <label class="ctl">ECHO <input type="range" id="echoB" min="0" max="100" value="0"></label>
+          <label class="ctl">REVERB <input type="range" id="reverbB" min="0" max="100" value="0"></label>
+        </div>
+        <div class="pads">
+          <button class="cue" data-deck="B" data-cue="0">CUE 1</button>
+          <button class="cue" data-deck="B" data-cue="1">CUE 2</button>
+          <button class="cue" data-deck="B" data-cue="2">CUE 3</button>
+          <button class="loopbtn" id="loopAB">A</button>
+          <button class="loopbtn" id="loopBB">B</button>
+          <button class="loopbtn" id="loopClrB">⟲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIXER -->
+    <div id="mixer">
+      <label class="switch"><input type="checkbox" id="autoDj" checked> AUTO-DJ</label>
+      <label class="switch"><input type="checkbox" id="syncBpm"> SYNC BPM</label>
+      <select id="deckMode" class="btn small" title="How decks behave across transitions">
+        <option value="chrono">Flow: Chronological A→B</option>
+        <option value="pingpong">Flow: Ping-pong A↔B</option>
+      </select>
+      <select id="xfCurve" class="btn small">
+        <option value="smooth">Curve: Smooth</option>
+        <option value="linear">Curve: Linear</option>
+        <option value="cut">Curve: Cut</option>
+      </select>
+      <input id="crossfader" type="range" min="0" max="1000" value="0">
+      <div id="xfStatus">next blend: —</div>
+    </div>
+  </section>
+</main>
+
+<div id="toasts"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

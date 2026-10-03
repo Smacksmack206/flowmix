@@ -1,0 +1,9 @@
+# analysis cache (regenerated on demand)
+cache/
+# bundled yt-dlp binary (download via setup below)
+bin/yt-dlp
+# python
+__pycache__/
+*.pyc
+# logs
+*.log
