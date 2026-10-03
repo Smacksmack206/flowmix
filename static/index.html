@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlowMix — AI YouTube DJ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 </head>
 <body>
 
@@ -19,6 +23,7 @@
     <button id="searchBtn" class="btn">Search</button>
   </div>
   <div class="top-actions">
+    <button id="videoBtn" class="btn" title="Watch the YouTube video — muted, synced to the mix">📺 VIDEO</button>
     <button id="aiBtn" class="btn btn-ai" title="AI orders the queue & sets crossfades">✨ AI MIX</button>
     <button id="recBtn" class="btn btn-rec" title="Record the mix to a file">● REC</button>
     <label class="mastervol">MASTER <input id="masterVol" type="range" min="0" max="100" value="90"></label>
@@ -56,6 +61,9 @@
 
   <!-- ============ DECKS + MIXER ============ -->
   <section id="stage">
+    <div id="videoPane" class="hidden">
+      <div id="videoFrame"><div id="ytPlayer"></div></div>
+    </div>
     <div id="decks">
       <!-- DECK A -->
       <div class="deck" id="deckA">

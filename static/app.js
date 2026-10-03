@@ -311,6 +311,7 @@ function updateDeckUI() {
   }
   renderQueue();
   updateNextBlendLabel();
+  syncVideo(false);
 }
 
 // ================= AUTO-DJ =================
@@ -826,6 +827,45 @@ $("clearQueueBtn").addEventListener("click", () => {
   updateNextBlendLabel();
 });
 $("masterVol").addEventListener("input", e => master.gain.value = e.target.value / 100);
+
+// ================= VIDEO MODE =================
+// Muted YouTube embed that follows the live deck for visuals only —
+// all audio keeps flowing through the ad-free deck pipeline.
+let ytPlayer = null, videoMode = false;
+
+window.onYouTubeIframeAPIReady = () => {
+  ytPlayer = new YT.Player("ytPlayer", {
+    width: "100%", height: "100%",
+    playerVars: { controls: 1, rel: 0, modestbranding: 1, playsinline: 1 },
+  });
+};
+const ytTag = document.createElement("script");
+ytTag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(ytTag);
+
+$("videoBtn").addEventListener("click", () => {
+  videoMode = !videoMode;
+  $("videoBtn").classList.toggle("on", videoMode);
+  $("videoPane").classList.toggle("hidden", !videoMode);
+  if (videoMode) syncVideo(true);
+  else if (ytPlayer?.pauseVideo) ytPlayer.pauseVideo();
+});
+
+function syncVideo(force) {
+  if (!videoMode || !ytPlayer || typeof ytPlayer.getCurrentTime !== "function") return;
+  const live = liveDeck();
+  if (!live.track) return;
+  const data = ytPlayer.getVideoData ? ytPlayer.getVideoData() : null;
+  if (!data || data.video_id !== live.track.id) {
+    ytPlayer.mute();
+    ytPlayer.loadVideoById({ videoId: live.track.id, startSeconds: live.el.currentTime });
+    return;
+  }
+  const drift = ytPlayer.getCurrentTime() - live.el.currentTime;
+  if (force || Math.abs(drift) > 1.2) ytPlayer.seekTo(live.el.currentTime, true);
+  if (live.el.paused) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+}
+setInterval(() => syncVideo(false), 1500);
 
 // ================= BOOT =================
 wireDeck(decks.A);

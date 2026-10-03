@@ -8,6 +8,8 @@ A unified local web app that turns YouTube into an ad-free, AI-mixed DJ deck wit
   through the local server. Ads are injected by the YouTube *player*, not present in the
   media stream itself, so playback is completely uninterrupted.
 - **Queue** — search, add tracks, drag to reorder, auto-analysis of every track.
+- **Video mode** — 📺 toggle shows a muted YouTube embed synced to the live deck
+  (visuals only; audio always stays on the ad-free pipeline).
 - **AI mix engine** — analyzes BPM, musical key (Camelot wheel), energy and brightness
   from the actual audio, then:
   - orders the queue for harmonic mixing (compatible keys, small tempo gaps, energy that builds)
